@@ -105,6 +105,13 @@ import subprocess
 import sys
 import time
 
+# Fix Windows console encoding for Unicode output (strategy/screener-prompt.md
+# contains ≥, →, —, … which cp1252 cannot encode). Must run before any print().
+if sys.stdout.encoding.lower() != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
+if sys.stderr.encoding.lower() != 'utf-8':
+    sys.stderr.reconfigure(encoding='utf-8')
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 PROTECTED = json.loads((ROOT / "config" / "protected.json").read_text())
 PROMPT_FILE = ROOT / "strategy" / "screener-prompt.md"
