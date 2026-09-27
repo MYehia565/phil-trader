@@ -96,7 +96,7 @@ for i in $(seq 1 "$CYCLES"); do
     PHIL_LEASE=held-by-other
   fi
 
-  # Model per tick (operator, 2026-09-23): Opus 5.5 for any tick that may run
+  # Model per tick (operator, 2026-09-27): Opus 4.7 for any tick that may run
   # FULL or TRIGGERED, Sonnet 5 for a tick CYCLE.md step 0/0b will run LIGHT.
   # Pinned because an unpinned `claude -p` takes the account-level default,
   # which follows the model last picked in any interactive session: from
@@ -106,7 +106,7 @@ for i in $(seq 1 "$CYCLES"); do
   # running a FULL cycle on Sonnet. The collision guard is left to CYCLE.md:
   # an operator commit landing between here and the session's own fetch
   # would flip it, and the error would go the wrong way.
-  MODEL=claude-opus-5-5
+  MODEL=claude-opus-4-7
   MODEL_WHY="tick may run FULL"
   if [ "$PHIL_LEASE" = "held-by-other" ]; then
     MODEL=claude-sonnet-5
