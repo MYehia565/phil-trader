@@ -607,7 +607,7 @@ def write_work_dir(work_dir, batches, sizes, counts, dropped, cfg, prompt_rev, t
             "mids": {str(c.get("market_id")): mids_of(c) for c in batch},
         }
         (work_dir / f"batch-{nn}.json").write_text(
-            json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+            json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         written.append({"nn": nn, "batch_file": f"batch-{nn}.json",
                         "out_file": f"out-{nn}.json", "markets": len(batch)})
     manifest = {
