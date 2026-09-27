@@ -322,7 +322,7 @@ def load_quota():
 
 def save_quota(own):
     QUOTA_DIR.mkdir(parents=True, exist_ok=True)
-    (QUOTA_DIR / f"{runner_id()}.json").write_text(json.dumps(own, indent=2) + "\n")
+    (QUOTA_DIR / f"{runner_id()}.json").write_text(json.dumps(own, indent=2) + "\n", encoding="utf-8")
 
 
 def load_filters():
@@ -609,7 +609,7 @@ def write_work_dir(work_dir, batches, sizes, counts, dropped, cfg, prompt_rev, t
         "prompt_rev": prompt_rev, "strata_sizes": sizes, "strata": counts,
         "dropped_by_reason": dropped, "batches": written,
     }
-    (work_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    (work_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     return written
 
 
@@ -884,7 +884,7 @@ def cmd_collect(args):
         for row in rows:
             fh.write(json.dumps(row) + "\n")
     marker.write_text(f"collected {ts} - {len(rows)} rows appended to "
-                      f"journal/screener.jsonl\n")
+                      f"journal/screener.jsonl\n", encoding="utf-8")
 
     ranked = sorted((r for r in rows if r.get("divergence") is not None),
                     key=lambda r: r["divergence"], reverse=True)
