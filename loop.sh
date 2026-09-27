@@ -186,7 +186,9 @@ PY
   # stray credential lookup fail fast instead of hanging on a keyring prompt
   # no headless session can answer; GIT_EDITOR stops `git rebase --continue`
   # from opening an editor and blocking forever.
+  # PATH includes the project directory so the python3 wrapper is found.
   PHIL_PUSH_BY_LOOP=1 PHIL_LEASE="$PHIL_LEASE" \
+  PATH="$PWD:$PATH" \
   GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=/usr/bin/true GIT_EDITOR=true \
     "${CMD[@]}" || echo "cycle $i failed; continuing"
 

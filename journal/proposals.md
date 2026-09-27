@@ -3556,3 +3556,14 @@ watch.py shape regexes, subclass auto-tagger.
 **Status:** relaxation fork NOT MET (12th; f4 fold pnl -3.34 after
 MrBeast pair). 0 bets placed, 0 settled, 4 open (RBA No effectively
 lost). No reverts; two playbook hygiene rules.
+
+---
+
+## 2026-09-27 — core/screen.py Unicode encoding failure on Windows
+
+**Evidence:** cycle 2026-09-27T14:17Z, step 4 scan & screen. `screen.py prepare` failed with `UnicodeEncodeError: 'charmap' codec can't encode character '↑' in position 2384` when writing batch JSON files. The error is in protected code (core/screen.py line 602, `Path.write_text` defaulting to cp1252 on Windows). Scan produced 800 candidates but screening could not proceed. Fell back to unscreened selection per procedure ("if prepare reports quota exhaustion, the Task tool is unavailable, or collect yields nothing, fall back to the current unscreened selection").
+
+**Proposed change:** `core/screen.py` line 602: add `encoding='utf-8'` to the `write_text()` call, or use `open(path, 'w', encoding='utf-8')` explicitly. This is a one-line fix in protected code.
+
+**Status:** open
+
