@@ -702,6 +702,33 @@ tested and why existing evidence doesn't already answer it.
 
 ## Market selection
 
+**The screener RANKS, it never GATES: quota exhaustion is not a licence to
+research nothing (2026-09-28 13:5xZ).** CYCLE.md step 4's fallback says "fall
+back to the current unscreened selection and say so in the funnel line" — the
+screener's absence removes the *ranking*, not the research duty. Two FULL
+cycles on 2026-09-28 (12:38Z, 13:40Z) read it the other way: both logged
+"Researched 0 candidates to concrete estimates under screener quota exhaustion
+fallback" and "No dated catalyst requiring immediate research", on a board that
+had them. The controlled comparison is this cycle — same exhausted quota
+(150/150), same runner, same board 15–75 min later, also unscreened — which
+produced five forecast rows plus two findings neither prior cycle saw: the BEA
+2026 annual update BEGINS 2026-09-30, i.e. it lands WITH the August Core PCE
+print rather than before it (resolving a pre-registered "next dated input" both
+cycles left standing), and the JOLTS August 8-leg ladder's Yes mids summing to
+1.1835 — an 18.35% overround. Neither required the screener.
+
+Rule: when the screener is unavailable (quota exhausted, Task tool absent,
+`collect` empty), research allocation falls back to the channels that were
+never screener-dependent in the first place — the dated-catalyst calendar
+(scheduled official prints inside the horizon), watch items whose trigger has
+fired, and the sibling census. Those claim their slots under the existing
+rules, exactly as they do on a screened cycle. "Screener exhausted" belongs in
+the funnel line as a `screener_note`, never as the reason `researched` is
+empty. A genuinely empty window is a defensible outcome; it just has to be
+reached by looking, and the schedule.json defer criteria (every candidate
+researched to no-edge within ~2h, or all gated on unreachable sources) are the
+test for claiming it.
+
 **Scan horizon (OPERATOR EDIT 2026-08-03, see journal/operator-notes.md):**
 default to
 `python3 core/scan.py --hours 168 --min-volume-24h 0 --min-total-volume 50000`.

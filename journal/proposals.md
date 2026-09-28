@@ -3717,3 +3717,100 @@ exhaustion evidence attached.
 
 **Status:** open (evidence added to carried item)
 
+---
+
+## 2026-09-28 13:5xZ — third instance of the same-runner collision, seen from the OTHER side; and `lease.py check` already leaks the env verdict the fix asks for
+
+**Evidence added to the 12:0xZ concurrent-session item above, not a new
+item.** That entry showed session B overwriting session A's fresh lease.
+This cycle shows the inverse failure: the lease told me `mine: true` for
+a lease I never wrote, twice, in both freshness states.
+
+1. My step 0 check returned
+   `{"held": true, "mine": true, "fresh": false, "runner": "operator", "age_s": 3101, "ttl_s": 3000, "sha": "a9c7dbdb..."}`.
+   Read per CYCLE.md, an expired lease under my own runner name does not
+   demote (only a *fresh* lease held by the *other* runner does), so I
+   proceeded FULL. That reading was correct by the letter and still
+   blind: the lease was not mine, it was a prior operator-runner
+   session's, expired 101s earlier.
+2. While I was mid-cycle, session B committed `6967b0f cycle:
+   20260928-1340` at 13:41:01+03:00 and my local `main` advanced under
+   me — confirming again that the tree is shared, not two checkouts.
+3. A later check in the SAME session returned
+   `{"held": true, "mine": true, "fresh": true, "runner": "operator", "age_s": 801, "sha": "46e00f35..."}`
+   — a different sha, acquired ~13:47Z, after my session began. So
+   `mine: true` was reported for two different leases, neither written by
+   me. **`mine` carries no information in either direction on this
+   machine**, which is the per-session-identity fix above, now with a
+   dated instance of the false-negative as well as the false-positive.
+
+**Sharpening the "cheapest fix" in the addendum above:** it proposes a
+new `lease.py context` subcommand to print the env-derived verdict.
+Half of that already exists and is being thrown away — `lease.py check`
+prints `"me": screen.runner_id()`, and `runner_id()` returns `"operator"`
+only when `PHIL_RUNNER=operator` or `PHIL_PUSH_BY_LOOP` is set. So the
+existing read-only subcommand already discloses the step-9 branch
+(`me: "operator"` ⇒ loop.sh owns the push) without any new code. I used
+exactly that to resolve step 9 this cycle instead of guessing, which is
+the first cycle to do so from evidence rather than assertion. What is
+still unreadable is `PHIL_LEASE` itself (acquired vs held-by-other).
+Adding that one field to `check`'s output is a smaller change than a new
+subcommand and removes the remaining guess.
+
+**Separate, and pre-registered by the playbook, not invented here: the
+funnel same-commit rule has now drifted a third window, and the playbook
+says escalate to CI.** The funnel rule (DEEP-2026-09-13) states: "If a
+third window shows the same drift after this rule, propose a mechanical
+CI-side check (cycle-log FULL line count vs funnel line count) instead of
+more prose." Measured this cycle:
+
+- `grep -c "^2026-09-28.*cycle done.*(FULL cycle" journal/cycles.log` → **11**
+- `grep -c '"cycle": "2026-09-28' strategy/funnel.jsonl` → **0**
+
+Eleven FULL cycles on one UTC day, zero funnel lines. The last funnel
+line of any date is `2026-09-27T12:20:00Z`. The rule explicitly covers
+the zero-research case ("A cycle that researched nothing still writes the
+line with `"researched": []`"), so the exhausted-screener excuse those
+cycles logged does not exempt them. `6967b0f`'s diff is one line in
+`journal/cycles.log` and nothing else.
+
+**Proposed change (protected path, hence here):** add to
+`core/validate.py` — run by CI on every push — a check that for each UTC
+day, the count of `cycle done ... (FULL cycle` lines in
+`journal/cycles.log` does not exceed the count of `strategy/funnel.jsonl`
+lines whose `cycle` field falls on that day. Fail the push on a
+shortfall. This is the exact check the playbook pre-registered; it is in
+a protected path, so it is the operator's to enact.
+
+**Status:** open
+
+---
+
+## 2026-09-28 13:5xZ — "screener quota exhausted" is being read as "research nothing", on a board that had researchable catalysts
+
+**Evidence (agent-side, and I am fixing the playbook half myself):** the
+12:38Z and 13:40Z FULL cycles both logged "Researched 0 candidates to
+concrete estimates under screener quota exhaustion fallback", and both
+concluded "No dated catalyst requiring immediate research". CYCLE.md step
+4's fallback says the opposite: "fall back to the current unscreened
+selection and say so in the funnel line" — the screener ranks, it does
+not gate, and its absence removes the ranking, not the research duty.
+
+This cycle is the controlled comparison: same exhausted quota (150/150),
+same runner, same board ~15-75 min later, unscreened. It produced five
+forecast rows and two findings — Core PCE Aug (the BEA 2026 annual update
+BEGINS 2026-09-30, i.e. it lands WITH the print; this resolves a
+pre-registered "next dated input" that two prior cycles left standing)
+and JOLTS Aug (8-leg ladder, Yes mids sum to 1.1835, an 18.35% overround).
+Neither needed the screener. Both were sitting in the same pool those
+cycles scanned and called empty.
+
+**Agent-side fix, taken this cycle:** playbook §Market selection gains a
+dated rule that the screener is a ranking instrument and quota exhaustion
+never licenses zero research; it redirects research to the dated-catalyst
+and watch-item channels, which claim their slots independently of the
+screener. No protected change requested here — recorded so the pattern is
+on file if it recurs after the playbook edit.
+
+**Status:** open (agent-side playbook edit applied same commit)
+
