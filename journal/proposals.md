@@ -3814,3 +3814,71 @@ on file if it recurs after the playbook edit.
 
 **Status:** open (agent-side playbook edit applied same commit)
 
+---
+
+## 2026-09-28 17:0xZ — forecast.py supersede gate cannot represent a BENCHMARK upgrade that leaves est_prob unchanged
+
+**Evidence (this cycle, RBI Oct 5-7 MPC, market 4424388):** the live row
+`bc70aa63a6f0` (2026-09-23, est 0.75 Yes on +25bp) rests on a benchmark its
+own note describes as `"TOI poll ~12 economists, majority +25 (no counts,
+qualitative only, gate 2 bars carve-out)"`. This cycle found a COUNTED
+benchmark for the same decision: a Reuters poll conducted Sep 18-28, n=61,
+with 35/61 = 0.574 (moneycontrol, finimize) or 38/61 = 0.623
+(m.economictimes, msn, ETBFSI) reported off the SAME poll — an unresolved
+outlet discrepancy that is itself worth recording. That is a move from
+"qualitative, no counts, explicitly gate-2-failing" to "named pollster,
+dated window, n=61, counted" — exactly the evidence-tier change the
+playbook's gate-2 language cares about.
+
+My honest re-read moved 0.75 → 0.78, so `--supersede` was REJECTED:
+`|delta est_prob| >= 0.05 (old 0.75, new 0.78) or a changed skip-reason`.
+The rejection is CORRECT on its own terms and I did not work around it —
+I did not inflate the number to clear the gate, and the row stands at 0.75.
+The sibling hold leg `4424389` moved 0.21 → 0.13 and superseded cleanly
+(`5c2d7961e3fa`), so the same decision is now recorded across two rows whose
+notes cite different benchmarks: one the n=61 Reuters poll, one the
+qualitative n~12 TOI poll.
+
+**Why this is a gap and not just a rule I dislike:** the gate keys on
+|delta est_prob| and skip_reason, both of which measure how much my ANSWER
+moved. Benchmark quality is a property of the EVIDENCE, and the two are
+independent — a better benchmark that confirms the prior estimate is the
+best possible outcome for calibration and the one case the gate cannot
+record. Consequences, in order of how much I think they matter:
+
+1. The row graded at settlement will carry a note asserting a weaker
+   benchmark than the one I actually hold, so any retro reading that row
+   mis-attributes the estimate's basis. The number is right; its provenance
+   is stale. This is small but it is exactly the kind of thing retros
+   reason from.
+2. It creates a perverse gradient: the way to record a benchmark upgrade is
+   to also move the number past 0.05, which is pressure toward shading an
+   estimate for a bookkeeping reason. I declined that here, and the
+   DEEP-2026-09-26 shade tally (unmeasured shades 0-for-5) is why.
+3. It is asymmetric with the existing design intent. The 2026-08-10
+   proposal that introduced this gate (mine, actioned by the operator in
+   commit 6b29ccd) asked for anti-flooding against "correlated re-records
+   of an unchanged estimate". A benchmark upgrade is not that — the note
+   content changes materially even when the number does not.
+
+**Proposed change (smallest first, and I am NOT asking for the floor to be
+lowered — that would reopen the flooding hole the gate was built to close):**
+(a) allow a supersede when the row's benchmark provenance changes, gated by
+an explicit flag rather than by the delta — e.g. `--benchmark-change
+"<what replaced what>"`, recorded on the row so the tally is auditable and
+cheap to grade later; or (b) failing that, an append-only
+`forecast.py annotate --id <id> --note "..."` that attaches a dated note to
+a live row without creating a new one or touching est_prob, which keeps
+immutability of the estimate while letting provenance catch up. Either is
+strictly additive to the existing gate.
+
+**Severity, stated honestly: LOW.** No estimate is wrong because of this,
+no bet was blocked (the leg was no-edge either way: No ask 0.19 vs own No
+0.22, edge 0.03 < min_edge 0.04), and the full reasoning survives in this
+cycle's log line and funnel row. It is a provenance/bookkeeping gap, not a
+calibration one, and it should rank below any open ask that touches money
+or data loss. Filing it because CYCLE.md says a structural oddity in my
+inputs is a proposal rather than a shrug, and because the fix is small.
+
+**Status:** open
+
