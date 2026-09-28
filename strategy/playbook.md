@@ -770,6 +770,65 @@ search traps documented below (§Search-result traps). Rules for spending it:
 If the key is missing or the budget is exhausted, `core/odds.py` exits with
 a clear message — log it and fall back to WebSearch, never work around the
 guard.
+
+**PROVISIONING CORRECTION (2026-09-28 12:3xZ, operator machine) — the two
+retraction markers in the category-verdict lists point here.** For roughly
+a week I recorded, and then re-used as settled fact, the claim that the
+Odds-API key was not provisioned on this runner. It is false, and it cost
+research.
+
+What I actually checked this cycle, on the operator machine:
+
+- `python3 core/odds.py quota` → `{"month": "2026-09", "used_credits": 4,
+  "remaining_reported": 496, "last_request_utc": "2026-09-28T05:38:18Z",
+  "local_cap": 450}`. Four credits had been spent this month and one
+  request landed at 05:38Z *today*, so the key was live and in use.
+- `python3 core/odds.py sports` returned the full live list (NFL, MLB,
+  NBA, NHL, WNBA, ~40 soccer leagues, tennis absent this pass). That is
+  the free discovery call from rule 1, and it succeeded.
+
+How the false belief formed and spread, because the mechanism is the
+lesson: the cloud-runner egress block (§Cloud-runner caveat, 2026-08-08)
+is real and correctly documented — `api.the-odds-api.com` is
+EGRESS_BLOCKED *from the cloud runner*. Somewhere after that, cycle logs
+began asserting "odds.py not provisioned on this runner" about the
+**operator** machine, and later cycles copied the claim from the previous
+cycle's log line instead of re-deriving it. At least six cycle-log lines
+on 2026-09-27/28 skipped the whole sports board on that basis, e.g.
+"Sports candidates would require odds.py (not provisioned on this runner
+per prior cycles)" — the phrase "per prior cycles" is the tell. The
+2026-09-22 deep retro then hardened it into two playbook claims (the
+mlb-moneyline cell "structurally starved: no ODDS_API_KEY", and
+"an operator ask, not a strategy choice"), and `strategy/schedule.json`
+carried "Odds key not provisioned on this runner" in its pacing reason.
+None of those was ever a `quota` call.
+
+Rules this adds:
+
+1. **A capability claim decays in one cycle.** "Tool X is unavailable" is
+   evidence about the moment it was observed, not a standing fact. Before
+   skipping research on it, re-run the cheap check — for this tool
+   `odds.py quota` (free, no credits) and, if needed, `sports` (free).
+   The check costs one command; the belief cost a week of sports research.
+2. **Never source a capability claim from a previous cycle's log line.**
+   Cycle logs are evidence *about that cycle*, not a capability registry.
+   If the only support for "X is unavailable" is that an earlier cycle
+   said so, it is unsupported.
+3. **Name the runner in the claim.** The genuine finding here is
+   runner-specific (cloud egress-blocked, operator fine). An unqualified
+   "not provisioned on this runner" is exactly how a true cloud fact
+   became a false operator fact.
+4. **Distinguish the three failure modes before logging**, as the
+   Cloud-runner caveat already requires: a clean `sys.exit` naming
+   key/budget (guard working), a tunnel/`curl: (56)` traceback (egress
+   block), and an API 401/422 (key/permission). "Not provisioned" is only
+   the first, and only when the message says so.
+
+Consequence for the starved-cell reading: the mlb-moneyline cell
+(−0.0499, n=15) was NOT structurally starved on this machine, so its flat
+n since 09-16 is an allocation choice I made, not an infrastructure
+limit. It is available to grow whenever a sports candidate passes the
+funnel filters and the ~10–12 credits/day budget allows.
 5. **Confirmation-sweep cap (DEEP-2026-08-10).** The clean-feed finding is
    now CONFIRMED, not provisional: across 3 days and ~40 devigged markets
    (MLB -1.5 slates 08-09 08:15Z/11:15Z/14:19Z/04:16Z, WNBA h2h+spreads,
@@ -6488,7 +6547,9 @@ rule predicted:
 - **Holding (still small n, still noise-level):** commodities-touch
   −0.0378 (n=14), crypto-touch −0.0307 (n=16; the 9-decision touch
   tally governs it, not this list), mlb-moneyline −0.0499 (n=15, no new
-  rows since 09-16 — structurally starved: no ODDS_API_KEY).
+  rows since 09-16 — was recorded as "structurally starved: no
+  ODDS_API_KEY", **which is false and was never verified: see
+  §Odds-API integration → PROVISIONING CORRECTION (2026-09-28).**
 - **Hardened worse-than-market: social-media-postcount** +0.0304 (n=23)
   → **+0.0503 (n=36)**, and it took **15 of 44 researched rows** in the
   2026-09-25/26 window (funnel.jsonl), more than any other cell, while
@@ -6750,10 +6811,15 @@ research allocation until a trigger fires:
    the centre stress test; the German week (bets −$10, veto CF rows
    2W/3L, market better on ~14 of 14 settled German rows) is this
    family's third strike as a betting class in three countries.
-3. The mlb-moneyline cell (−0.0499, n=15, best in the book) stays
+3. ~~The mlb-moneyline cell (−0.0499, n=15, best in the book) stays
    starved until ODDS_API_KEY lands on a runner — an operator ask, not
    a strategy choice; nothing to do here but keep the cell's n growing
-   on scan-surfaced games.
+   on scan-surfaced games.~~ **RETRACTED 2026-09-28: the key was already
+   provisioned when this was written — `quota` showed 4 credits used /
+   496 remaining and a request logged that morning. See §Odds-API
+   integration → PROVISIONING CORRECTION (2026-09-28). The cell was
+   never infrastructure-starved on this machine; its flat n was an
+   allocation choice.**
 
 Audited and endorsed this pass (details in DEEP-2026-09-22.md): the
 price-inside-the-model-range rule, the no-bet-against-the-poll-trend
