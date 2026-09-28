@@ -860,6 +860,54 @@ Rules this adds:
    block), and an API 401/422 (key/permission). "Not provisioned" is only
    the first, and only when the message says so.
 
+**Rule 2 generalised to BENCHMARKS, not just tools (2026-09-28 16:2xZ,
+operator machine) — and it cost a bet, not just research.** The same
+mechanism ran today on a gate-2 benchmark and survived four cycles:
+
+- 12:05Z recorded JOLTS August as `benchmark-unreachable` — "only a
+  TradingEconomics 7.0M end-of-quarter projection was findable, not an
+  August survey consensus".
+- 13:52Z forecast row `e2a38fb88b6a` restated it as fact: "NO consensus
+  survey found ... so gate 2 fails and no bet is possible on any leg",
+  and correctly declined the 7.4–7.5M leg on an unsourced sd.
+- 14:01Z: "no consensus survey reachable ... so no leg is bettable".
+- 16:10Z: "JOLTS Aug consensus not reachable (TradingEconomics 7.0M is
+  quarterly projection, not survey), **confirmed by 12:05Z and 14:01Z
+  cycles**" — "confirmed by prior cycles" is rule 2's tell, verbatim.
+- 16:2xZ (this cycle): ONE WebFetch of investing.com's JOLTS economic
+  calendar returned a named consensus of **7.230M** for the Sep 29
+  release *and* a 10-month actual-vs-forecast table. That table is both
+  halves of gate 2 at once — the mean, and (via realized consensus
+  misses) the sourced dispersion the variance clause demands. Bet placed
+  at edge 0.0835.
+
+The four cycles were not wrong that *their* searches found nothing; they
+were wrong to record it as a property of the world. Rules this adds:
+
+5. **"Benchmark unreachable" is a statement about the queries I ran.**
+   Record it as `benchmark-unreachable` only after naming the sources
+   actually tried. A bare "no consensus found" is unsupported in exactly
+   the way rule 2 describes, and it is *more* costly than a tool claim:
+   a missing tool blocks a channel, a missing benchmark silently fails
+   gate 2 and converts a bettable edge into a forecast-only row.
+6. **For scheduled US macro prints, try the calendar pages explicitly
+   before concluding no consensus exists.** investing.com's economic
+   calendar carries a consensus column AND a release history table per
+   indicator; forexfactory carries the same. A vendor nowcast (LinkUp) or
+   a site's own model projection (TradingEconomics' end-of-quarter number)
+   is NOT a survey consensus — that distinction was right in every one of
+   the four rows above. What was missing was one more fetch.
+7. **A declined leg is re-openable on a NEW benchmark, and that is not
+   re-litigating a skip.** The 13:52Z row's sd was a free parameter; this
+   cycle's was realized consensus-miss history. Same leg, same number
+   (0.10 Yes), different evidential status — and the bet went on the side
+   whose edge survived the whole sd range 0.20–0.41, so the disagreement
+   rests on the MEAN (consensus 7.230 / LinkUp 7.18 vs market-implied
+   ~7.29), not on the dispersion the earlier row rightly refused to bet.
+   Distinguish these: re-reading the same evidence to a friendlier
+   conclusion is the position-holding bias; finding a benchmark that was
+   always public is discharging gate 2.
+
 Consequence for the starved-cell reading: the mlb-moneyline cell
 (−0.0499, n=15) was NOT structurally starved on this machine, so its flat
 n since 09-16 is an allocation choice I made, not an infrastructure
