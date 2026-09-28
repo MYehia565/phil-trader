@@ -3567,3 +3567,107 @@ lost). No reverts; two playbook hygiene rules.
 
 **Status:** open
 
+---
+
+## 2026-09-28 12:0xZ — two agent sessions ran concurrently in ONE working tree; the lease cannot see them and `git add -A` committed the other session's scratch
+
+**This is not the cloud-runner 403 item (2026-09-06) or the divergence
+items (2026-09-08, 2026-09-18).** Those are about origin refusing a ref
+write across two machines. This is two sessions on the SAME machine
+sharing one checkout, where the lease reports success to both.
+
+**Evidence, all from this cycle (operator machine, paper):**
+
+1. Session A (me) started with `main == origin/main` at `35d0ff3`, a
+   clean tree, and a tip ~46 min old — collision guard legitimately
+   clear. Acquired the lease at 11:44:12Z:
+   `{"acquired": true, "written": true, "me": "operator", "sha": "622e0a99...", "ttl_s": 3000, "replaced": null}`.
+   `replaced: null` — the lease was free, so session B either never
+   wrote one or had already released.
+2. Session B committed `603f40b cycle: 20260928-1147` at 11:47:47+03:00
+   (11:47:15Z cycles.log line) — three minutes INSIDE my 50-minute
+   lease. Its own log line claims `Lease: acquired, written true,
+   me=operator`. Both sessions therefore believed they held it.
+3. `core/lease.py check` after B finished: `{"held": false, "mine":
+   false, "fresh": false, "runner": null}` — my lease was gone well
+   inside its TTL. B's release cleared MY lease, because the lease
+   identity is the runner name (`me: "operator"`), with nothing to
+   distinguish two sessions on one runner.
+4. Proof the tree is shared, not two checkouts: `603f40b` committed
+   `screen-stderr.txt`, which is **my** pipeline's stderr from minutes
+   earlier — `git show 603f40b:screen-stderr.txt` is byte-identical to
+   the quota message my own `screen.py prepare` wrote. Session B's
+   `git add -A` swept up session A's in-flight scratch file.
+
+**Why it costs money, not just tidiness:** B researched 0 candidates and
+concluded "no dated catalyst requiring immediate research" by reading
+three bet ids out of `strategy/schedule.json` as "already positioned"
+(RBA `4ed738b2045b`, Canada GDP `05333272be9d`, Core PCE `8894592b953a`)
+— all voided by the operator's own ledger reset `f71354e`, which B's
+same log line half-noticed by reporting "Open positions: none". Eighteen
+minutes later I re-researched one of those catalysts and found the
+Canada GDP `<0.0%` leg had repriced from ask 0.31 (09-18, recorded
+market-agrees) to ask 0.12 against an unchanged sourced estimate of
+0.26 — placed `4689dce0320b`, edge 0.14. A duplicate-suppressed cycle
+skipped a live carve-out candidate.
+
+**Proposed changes (protected paths — operator's call):**
+
+- `core/lease.py`: make the lease identity per-SESSION, not per-runner
+  (e.g. append a pid/boot-id/uuid to `me`, persisted for the session's
+  lifetime). Then `acquire` returns false for the second session on the
+  same machine, and `release` refuses to clear a lease it does not own.
+  Today `release` is effectively unauthenticated between same-runner
+  sessions.
+- `loop.sh`: the `.loop.pid` single-instance guard already exists in
+  `.gitignore` but clearly did not prevent this — worth checking whether
+  it covers a session started outside `loop.sh` (e.g. an interactive
+  invocation), since that is the likeliest way two sessions got into one
+  tree.
+- `CYCLE.md` step 8: `git add -A` is unsafe in a shared tree. Staging
+  the cycle's known paths (`journal/`, `strategy/`, `reports/`) instead
+  of `-A` would have kept my scratch out of B's commit.
+- `.gitignore` (operator-owned): it already ignores `scan-stderr.txt`
+  and `screen-prepare.json` but not `screen-stderr.txt` or
+  `scan-stderr2.txt`. Either add them or — better — the agent-side fix
+  below makes it moot.
+
+**Agent-side fix I am taking on myself, no operator action needed:** the
+operator-notes 2026-08-31 rule says per-cycle scratch belongs under
+`work/` (which IS gitignored). I wrote `scan-stderr.txt`,
+`scan-stderr2.txt`, `screen-prepare.json` and `screen-stderr.txt` to the
+repo root instead, which is what made them sweepable. Deleted the
+untracked ones from the root this cycle and keeping scratch under
+`work/` from here on. `screen-stderr.txt` stays TRACKED for now —
+untracking it needs a `git rm --cached`, which this session could not run
+(permission prompt), so it is left for the operator rather than worked
+around.
+
+**Status:** open
+
+---
+
+## 2026-09-28 12:0xZ — screener quota exhaustion is now the normal state, not the exception (added evidence for the carried "screener quota vs two runners" item)
+
+**Evidence:** `screen.py prepare` reported `150 / 150 batches, UTC day
+2026-09-28, by runner {'cloud': 11, 'operator': 139}` — the operator
+side burned 139 of 150. Every FULL cycle from 2026-09-28T10:04Z onward
+(10:04, 10:17, 10:56, 10:57, 11:47, and this one) logged the same
+exhaustion and fell back to unscreened selection; the 09:12Z cycle still
+had 4 batches. So the whole-day channel was gone by mid-morning UTC,
+with ~12 hours of cycles left to run without it.
+
+This is the carried item's predicted failure mode, now with a dated
+count: the cap is per-UTC-day and shared, so a high-frequency runner
+starves every later cycle on both runners. Combined with the
+concurrent-session finding above, 139 operator batches in one day is
+itself consistent with more than one session cycling on this machine.
+
+**Proposed change (protected):** as carried — either per-runner quotas
+instead of one shared pool, or a per-hour rate limit so the day's budget
+cannot be consumed before the day's catalysts land. No new mechanism
+proposed here; this entry exists so the carried item has the dated
+exhaustion evidence attached.
+
+**Status:** open (evidence added to carried item)
+
