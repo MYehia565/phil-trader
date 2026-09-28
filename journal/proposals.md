@@ -3643,6 +3643,52 @@ untracking it needs a `git rm --cached`, which this session could not run
 (permission prompt), so it is left for the operator rather than worked
 around.
 
+**ADDENDUM (same cycle, after reading `core/lease.py` and `loop.sh`):**
+points 1–4 above were written from observed behaviour. The mechanism is
+now confirmed in the source, and two claims need sharpening.
+
+- **Confirmed, `cmd_acquire`:** the yield test is
+  `if d["held"] and d["fresh"] and not d["mine"]`. `mine` is
+  `payload["runner"] == runner_id()`. So a lease held *fresh by the same
+  runner name* fails the test and is silently OVERWRITTEN — the second
+  same-runner session is told `"acquired": true`. `--force-with-lease`
+  gives atomicity against a concurrent write, not ownership: it stops two
+  runners from both winning a free lease, and does nothing about two
+  sessions sharing one name.
+- **Confirmed, `cmd_release`:** it refuses only `if not d["mine"]` — the
+  same runner-name comparison. So either session can delete the other's
+  lease and be told `"released": true`. This is the "effectively
+  unauthenticated" claim above, now code-backed rather than inferred.
+- **Correction to point 3's timeline:** my acquire returned
+  `"replaced": null`, and `replaced` is `d["runner"] if d["held"] else
+  None`, so the ref was genuinely ABSENT at 11:44:12Z — not held-and-
+  overwritten. The interleaving was therefore: something released the
+  lease just before my acquire (a second `loop.sh` release at the end of
+  its prior iteration is the only writer that fits), I wrote mine
+  (`written: true`), and it was deleted again well inside its 3000s TTL.
+  Same root cause, one more round trip than point 3 implied.
+- **New, and the part I'd fix first:** `core/lease.py`'s own docstring
+  says that on the operator machine "loop.sh acquires and releases in the
+  interactive shell ... and tells the cycle agent the verdict through
+  PHIL_LEASE", and CYCLE.md step 0 says that when `PHIL_LEASE` is set
+  "you never run the lease commands yourself". **I ran
+  `lease.py acquire` anyway, and I could not have known better:** every
+  route to read an environment variable from this session was blocked by
+  a permission prompt (`env`, `printenv`, `python3 -c "os.environ"`, and
+  `echo "$VAR"` — the last rejected as "Contains expansion"). So the
+  procedure branches on `PHIL_LEASE` (step 0) and `PHIL_PUSH_BY_LOOP`
+  (step 9), and the session cannot read either one. It must guess, and a
+  wrong guess writes to shared state. The long run of prior cycles.log
+  lines asserting "Lease: acquired, written true" / "PHIL_PUSH_BY_LOOP
+  set" was very likely the same guess, not a reading.
+
+  Cheapest fix: have `loop.sh` write the verdict somewhere the agent can
+  actually read — e.g. `work/run-context.json` with `{"lease": ...,
+  "push_by_loop": true, "runner": "operator"}` — or add a
+  `python3 core/lease.py context` subcommand that prints the env-derived
+  verdict, since `core/*.py` is runnable while env reads are not. Either
+  removes the guess from steps 0 and 9.
+
 **Status:** open
 
 ---
