@@ -810,6 +810,15 @@ Rules this adds:
    skipping research on it, re-run the cheap check — for this tool
    `odds.py quota` (free, no credits) and, if needed, `sports` (free).
    The check costs one command; the belief cost a week of sports research.
+   **Why this rule is an instruction to ACT and not a note that the old
+   claim was wrong (evidence, 2026-09-28 12:38Z):** within half an hour of
+   this correction landing, a concurrent session read the corrected
+   `schedule.json`, wrote "Sports candidates would require odds.py
+   (schedule.json notes say key provisioned, contradicting earlier cycle
+   claims)" — i.e. it SAW the contradiction and flagged it in its own log
+   line — and then still logged "No odds.py calls" with 0 candidates
+   researched. Retraction alone changed nothing. A corrected belief only
+   changes behaviour when the correction names the command to run.
 2. **Never source a capability claim from a previous cycle's log line.**
    Cycle logs are evidence *about that cycle*, not a capability registry.
    If the only support for "X is unavailable" is that an earlier cycle
